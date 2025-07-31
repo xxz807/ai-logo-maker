@@ -4,11 +4,11 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { NextResponse } from "next/server";
 export async function POST(req) {
 
-    const { userEmail, userName } = req.json();
+    const { userEmail, userName } = await req.json();
 
     try {
         // if users exists
-        const docRef = doc(db, "users", user.userEmail);
+        const docRef = doc(db, "users", userEmail);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             return NextResponse.json(docSnap.data())
