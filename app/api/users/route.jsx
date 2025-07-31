@@ -15,11 +15,11 @@ export async function POST(req) {
         try {
             // IF USER EXISTS 
             const docRef = doc(db, "users", userEmail);
-            const docSnap = await getDoc(docRef);
+            //const docSnap = await getDoc(docRef);
 
-            if (docSnap.exists()) {
-                return NextResponse.json(docSnap.data());
-            } else {
+            //if (docSnap.exists()) {
+            //    return NextResponse.json(docSnap.data());
+            //} else {
                 // insert new user
                 const data = {
                     name: userName || 'Anonymous User',
@@ -28,9 +28,9 @@ export async function POST(req) {
                     createdAt: new Date().toISOString()
                 };
 
-                await setDoc(doc(db, "users", userEmail), data);
+            //    await setDoc(doc(db, "users", userEmail), data);
                 return NextResponse.json(data);
-            }
+            //}
         } catch (firestoreError) {
             console.error("Firestore operation failed:", firestoreError);
 
