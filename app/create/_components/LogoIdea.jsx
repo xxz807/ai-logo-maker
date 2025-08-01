@@ -46,6 +46,7 @@ const LogoIdea = ({ formData, onHandleInputChange }) => {
                     <h2 key={index}
                         onClick={() => {
                             setSelectedOption(item);
+                            console.log("-------------select idea: "+item);
                             onHandleInputChange(item)
                         }}
                         className={`p-2 rounded-full border px-3 cursor-pointer

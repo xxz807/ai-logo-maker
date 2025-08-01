@@ -1,18 +1,11 @@
-// app/api/ai-design-ideas/route.jsx
-
-import { NextResponse } from 'next/server'; // 导入 NextResponse
+import { NextResponse } from 'next/server'; 
 import axios from 'axios';
 
-// 确保您的 .env.local 文件中有这些环境变量
-// SUPABASE_URL_GEMINI=https://merxgjqibbjugmzhpsnn.supabase.co/functions/v1/express/geminirequest
-// SUPABASE_KEY=YOUR_SUPABASE_ANON_KEY
-// SUPABASE_URL_GEMIN_MODEL=gemini-2.5-flash (或 gemini-pro)
-
-export async function POST(request) { // App Router 的 POST 函数签名，不带类型注解
-    // 解析请求体
+export async function POST(request) { 
+    
     let prompt;
     try {
-        const body = await request.json(); // 从 Request 对象中获取 body
+        const body = await request.json(); 
         prompt = body.prompt;
     } catch (parseError) {
         console.error("Error parsing request body:", parseError);
@@ -31,7 +24,7 @@ export async function POST(request) { // App Router 的 POST 函数签名，不�
 
         const response = await axios({
             method: 'post',
-            url: process.env.SUPABASE_URL_GEMINI,
+            url: process.env.SUPABASE_URL_GEMINI_CALL+"ai-ideas",
             headers: {
                 'Authorization': `Bearer ${process.env.SUPABASE_KEY}`,
                 'Content-Type': 'application/json'
