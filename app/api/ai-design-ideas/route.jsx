@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server'; 
+import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-export async function POST(request) { 
-    
+export async function POST(request) {
+    // 1. 从请求体中解析数据
     let prompt;
     try {
-        const body = await request.json(); 
+        const body = await request.json();
         prompt = body.prompt;
     } catch (parseError) {
         console.error("Error parsing request body:", parseError);
@@ -19,12 +19,33 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 });
     }
 
+    // --- 测试模式逻辑开始 ---
+    const isTestMode = process.env.NEXT_PUBLIC_ENABLE_IDEAS_TEST_MODE === 'true';
+
+    if (isTestMode) {
+        console.log("-----------------Test mode: Returning predefined AI ideas.");
+        const predefinedIdeas = {
+            ideas: [
+                "Test Idea A: Minimalist icon design",
+                "Test Idea B: Abstract geometric pattern",
+                "Test Idea C: Hand-drawn character sketch",
+                "Test Idea D: Typographic and bold",
+                "Test Idea E: Nature-inspired emblem"
+            ]
+        };
+        // 直接返回预设的 ideas
+        return NextResponse.json(predefinedIdeas, { status: 200 });
+    }
+    // --- 测试模式逻辑结束 ---
+
+
+    // 正常生产模式下的代码（只有当 isTestMode 为 false 时才执行）
     try {
         console.log("-----------------start call ai");
 
         const response = await axios({
             method: 'post',
-            url: process.env.SUPABASE_URL_GEMINI_CALL+"ai-ideas",
+            url: process.env.SUPABASE_URL_GEMINI_CALL + "ai-ideas", // 确保 URL 正确，指向生成 ideas 的 Supabase 路由
             headers: {
                 'Authorization': `Bearer ${process.env.SUPABASE_KEY}`,
                 'Content-Type': 'application/json'
@@ -39,10 +60,10 @@ export async function POST(request) {
         const rawSupabaseResponseData = response.data;
         console.log("-----------------Supabase raw response data (from axios):", rawSupabaseResponseData);
 
-        let parsedAiData; // 不带类型注解
-        
-        // 这里的逻辑可以保留，以防 Supabase 函数有时未能正确返回纯 JSON
-        // 但如果您已经优化了 Supabase 函数使其返回纯 JSON，那么下面的 if/else 可以简化
+        let parsedAiData;
+
+        // 这段逻辑可以保留，以防 Supabase 函数有时未能正确返回纯 JSON
+        // 理想情况下，您的 Supabase 函数应该已经优化到总是返回纯 JSON
         if (typeof rawSupabaseResponseData === 'string') {
             const jsonMatch = rawSupabaseResponseData.match(/```json\n([\s\S]*?)\n```/);
             if (jsonMatch && jsonMatch[1]) {
@@ -57,24 +78,21 @@ export async function POST(request) {
                     );
                 }
             } else {
-                // 如果是纯文本但不是 markdown json，尝试直接解析
                 try {
-                  parsedAiData = JSON.parse(rawSupabaseResponseData);
-                  console.log("-----------------Parsed JSON from Supabase response (direct string parse):", parsedAiData);
+                    parsedAiData = JSON.parse(rawSupabaseResponseData);
+                    console.log("-----------------Parsed JSON from Supabase response (direct string parse):", parsedAiData);
                 } catch (parseError) {
-                  console.warn("Supabase response is raw text and not parseable as JSON directly.");
-                  return NextResponse.json(
-                      { error: "Unexpected AI response format (not JSON).", rawResponse: rawSupabaseResponseData },
-                      { status: 500 }
-                  );
+                    console.warn("Supabase response is raw text and not parseable as JSON directly.");
+                    return NextResponse.json(
+                        { error: "Unexpected AI response format (not JSON).", rawResponse: rawSupabaseResponseData },
+                        { status: 500 }
+                    );
                 }
             }
         } else if (typeof rawSupabaseResponseData === 'object') {
-            // 如果 response.data 已经是对象 (axios 自动解析了)
             parsedAiData = rawSupabaseResponseData;
             console.log("-----------------Supabase response is already a JSON object:", parsedAiData);
         } else {
-            // 兜底情况，如果响应格式未知
             console.warn("Supabase response data is an unexpected type.");
             return NextResponse.json(
                 { error: "Unexpected AI response format.", rawResponse: rawSupabaseResponseData },
@@ -84,21 +102,19 @@ export async function POST(request) {
 
         console.log("-----------------end call ai: complete");
 
-        // 使用 NextResponse.json() 返回成功响应
         return NextResponse.json(parsedAiData, { status: 200 });
 
-    } catch (error) { // 移除类型注解
+    } catch (error) {
         console.error("Error in AI call:", error.message || error);
         if (axios.isAxiosError(error) && error.response) {
-            console.error("Axios response error data:", error.response.data);
-            console.error("Axios response error status:", error.response.status);
-            // 使用 NextResponse.json() 返回错误响应
+            const errorDetails = error.response.data?.details || error.response.data?.error || error.message;
+            console.error("Axios response data:", error.response.data);
+            console.error("Axios response status:", error.response.status);
             return NextResponse.json(
-                { error: "Error from Supabase function.", details: error.response.data },
-                { status: error.response.status } // 保持 Supabase 返回的错误状态码
+                { error: "Error from Supabase function.", details: errorDetails },
+                { status: error.response.status }
             );
         }
-        // 使用 NextResponse.json() 返回内部服务器错误
         return NextResponse.json(
             { error: 'Internal server error during AI call', details: error.message || 'Unknown error' },
             { status: 500 }
