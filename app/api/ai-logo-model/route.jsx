@@ -1,10 +1,55 @@
+// app/api/ai-logo-model/route.jsx
+
 import axios from "axios";
 import { NextResponse } from "next/server";
+import fs from 'fs/promises'; // 导入 Node.js 文件系统模块 (异步版本)
+import path from 'path';     // 导入 Node.js 路径模块
 
 export async function POST(req) {
     // 1. 从请求体中解析数据
     const { prompt, email, title, desc } = await req.json();
 
+    // --- 测试模式逻辑开始 ---
+    // 检查环境变量是否启用测试模式
+    const isTestMode = process.env.NEXT_PUBLIC_ENABLE_LOGO_TEST_MODE === 'true';
+
+    if (isTestMode) {
+        console.log("-----------------Test mode: Returning static image from public folder.");
+        try {
+            // 定义测试图片的路径和名称
+            const testImageFileName = 'test-logo.png'; // 确保这个文件名与您 public 文件夹中的文件匹配
+            const testImagePath = path.join(process.cwd(), 'public', testImageFileName);
+
+            // 读取图片文件
+            const imageBuffer = await fs.readFile(testImagePath);
+            
+            // 将 Buffer 转换为 Base64 字符串
+            const base64Image = imageBuffer.toString('base64');
+
+            // 根据测试图片的实际类型设置 MIME Type
+            // 如果您的测试图片是 .jpg，则改为 'image/jpeg'
+            const mimeType = 'image/png'; 
+            
+            // 构建 Base64 Data URL
+            const base64ImageWithMime = `data:${mimeType};base64,${base64Image}`;
+
+            console.log("-----------------Test mode: Generated static image Base64 (truncated):", base64ImageWithMime.substring(0, 100) + "...");
+
+            // 返回 Base64 编码的测试图片
+            return NextResponse.json({ image: base64ImageWithMime }, { status: 200 });
+
+        } catch (fileError) {
+            console.error("-----------------Test mode error: Failed to read static image from public folder:", fileError);
+            return NextResponse.json(
+                { error: 'Test mode failed: Could not load static test image. Check if "public/test-logo.png" exists.' },
+                { status: 500 }
+            );
+        }
+    }
+    // --- 测试模式逻辑结束 ---
+
+
+    // 正常生产模式下的代码（只有当 isTestMode 为 false 时才执行）
     try {
         // 2. 校验客户端传入的 prompt
         if (!prompt) {
@@ -52,15 +97,10 @@ export async function POST(req) {
                 sync_mode: true
             },
             maxRedirects: 5,
-            // 移除 responseType: 'arraybuffer'，让 axios 自动解析 JSON
-            // axios 默认会根据 Content-Type: application/json 解析为 JavaScript 对象
-            // 如果 Supabase 返回的是 application/json 且包含 image URL，axios 就会直接提供该对象
         });
 
         console.log("------------End of Hugging Face image generation call");
 
-        // === 关键修改：直接使用 imageResponse.data.image ===
-        // Supabase 函数现在直接返回 { image: "data:image/..." } 这样的 JSON
         const base64ImageWithMime = imageResponse.data?.image;
 
         if (!base64ImageWithMime) {
@@ -78,7 +118,7 @@ export async function POST(req) {
         console.error("Critical Error in AI logo generation pipeline:", error);
 
         if (axios.isAxiosError(error) && error.response) {
-            const errorDetails = error.response.data?.details || error.response.data?.error || error.message; // 尝试获取更具体的错误信息
+            const errorDetails = error.response.data?.details || error.response.data?.error || error.message;
             console.error("Axios response status:", error.response.status);
             console.error("Axios response data (if available):", errorDetails);
 
