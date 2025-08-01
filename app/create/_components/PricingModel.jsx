@@ -5,12 +5,12 @@ import Lookup from '../../_data/Lookup.jsx';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button'
 import { SignInButton, useUser } from '@clerk/nextjs';
-
+import Link from 'next/link';
 
 const PricingModel = ({ formData }) => {
-    const {user} = useUser();
+    const { user } = useUser();
     useEffect(() => {
-        if(formData?.title && typeof window!=='undefined'){
+        if (formData?.title && typeof window !== 'undefined') {
             localStorage.setItem('formData', JSON.stringify(formData))
         }
     }, [formData])
@@ -32,14 +32,16 @@ const PricingModel = ({ formData }) => {
                                 <h2 className='text-lg mt-3' key={index}>{feature}</h2>
                             ))}
                         </div>
-                        { user? 
-                        <Button className='mt-5'>{pricing.button}</Button>
-                        : <SignInButton mode='model' forceRedirectUrl={'/make-logo?type='+pricing.title}>
-                            <Button className='mt-5'>{pricing.button}</Button>
-                        </SignInButton>
+                        {user ?
+                            <Link href={'/make-logo?type=' + pricing.title}>
+                                <Button className='mt-5'>{pricing.button}</Button>
+                            </Link>
+                            : <SignInButton mode='model' forceRedirectUrl={'/make-logo?type=' + pricing.title}>
+                                <Button className='mt-5'>{pricing.button}</Button>
+                            </SignInButton>
 
                         }
-                        
+
                     </div>
                 ))}
             </div>

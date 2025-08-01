@@ -1,4 +1,6 @@
 export default{
     DESIGN_IDEA_PROMPT:'Based on Logo of type {logoType} Generate a text prompt to create Logo for Logo title/Brand name : {logoTitle} with decription: {logoDesc} and refering to prompt: {logoPrompt}. Give me 4/5 Suggestion of logo idea (each idea with maximum 4-5 words), Result with ideas only in JSON format ',
     LOGO_PROMPT:'Generate a text prompt to create Logo for Logo Title/Brand name : {logoTitle},with description: {logoDesc}, with Color combination of {logoColor}, also include the {logoIdea} and include {logoDesign} design idea and Referring to this Logo Prompt:{logoPrompt}  Give me result in JSON portal with prompt field only'
+//Generate a text prompt to create Logo for Logo Title/Brand name : small qilin,with description: In traditional Chinese culture, the qilin is a mythical beast with a dragon’s head, deer antlers, lion eyes, a tiger’s back, a bear’s waist, serpent scales, and horse hooves. Its entire body shimmers with five auspicious colors, symbolizing good fortune, benevolent governance, and universal peace., with Color combination of golden and red, also include it is smile and include represending happy and joyful design idea and Referring to this Logo Prompt:{logoPrompt} Give me result in JSON portal with prompt field only
+
 }
