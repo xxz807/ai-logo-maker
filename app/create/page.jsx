@@ -1,8 +1,7 @@
 "use client"
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import LogoTitle from "./_components/LogoTitle";
-import { ArrowLeft } from "lucide-react";
-import { ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LogoDesc from "./_components/LogoDesc";
 import LogoColorPallete from "./_components/LogoColorPallete";
@@ -13,35 +12,59 @@ import PricingModel from "./_components/PricingModel";
 
 function CreateLogo() {
     const [step, setStep] = useState(1);
-    const [formData, setFormData] = useState();
+    const [formData, setFormData] = useState({
+        title: '',
+        desc: '',
+        palette: '',
+        design: {
+            title: '',
+            prompt: '',
+            image: '' 
+        },
+        idea: '', 
+        pricing: '', 
+    });
+
+    useEffect(() => {
+        console.log("Parent formData (updated):", formData);
+        localStorage.setItem('formData', JSON.stringify(formData));
+    }, [formData]); 
 
     const onHandleInputChange = (field, value) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value,
-        }))
-        
-        console.log(formData)
-    }
+        setFormData(prev => {
+            return {
+                ...prev,
+                [field]: value,
+            };
+        });
+    };
+
     return (
         <div className="mt-28 p-10 border rounded-xl 2xl:mx-72">
-            {step == 1 ?
+            {step === 1 && (
                 <LogoTitle onHandleInputChange={(v) => onHandleInputChange('title', v)} formData={formData} />
-                : step == 2 ?
-                    <LogoDesc onHandleInputChange={(v) => onHandleInputChange('desc', v)} formData={formData}></LogoDesc>
-                    : step == 3 ?
-                        <LogoColorPallete onHandleInputChange={(v) => onHandleInputChange('palette', v)} formData={formData}></LogoColorPallete>
-                        : step == 4 ?
-                            <LogoDesigns onHandleInputChange={(v) => onHandleInputChange('design', v)} formData={formData}></LogoDesigns>
-                            : step == 5 ?
-                                <LogoIdea onHandleInputChange={(v) => onHandleInputChange('idea', v)} formData={formData}></LogoIdea>
-                                : step == 6 ?
-                                <PricingModel onHandleInputChange={(v) => onHandleInputChange('pricing', v)} formData={formData}></PricingModel>
-                                : null
-            }
+            )}
+            {step === 2 && (
+                <LogoDesc onHandleInputChange={(v) => onHandleInputChange('desc', v)} formData={formData} />
+            )}
+            {step === 3 && (
+                <LogoColorPallete onHandleInputChange={(v) => onHandleInputChange('palette', v)} formData={formData} />
+            )}
+            {step === 4 && (
+                <LogoDesigns onHandleInputChange={(v) => onHandleInputChange('design', v)} formData={formData} />
+            )}
+            {step === 5 && (
+                <LogoIdea onHandleInputChange={(v) => onHandleInputChange('idea', v)} formData={formData} />
+            )}
+            {step === 6 && (
+                <PricingModel onHandleInputChange={(v) => onHandleInputChange('pricing', v)} formData={formData} />
+            )}
+
             <div className="flex justify-between items-center mt-10">
-                {step != 1 && <Button variant='outline'
-                onClick={() => setStep(step - 1)}><ArrowLeft />Previous</Button>}
+                {step !== 1 && ( 
+                    <Button variant='outline'
+                        onClick={() => setStep(step - 1)}><ArrowLeft />Previous</Button>
+                )}
                 <Button onClick={() => setStep(step + 1)}><ArrowRight />Continue</Button>
             </div>
         </div>
