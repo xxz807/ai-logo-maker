@@ -19,9 +19,14 @@ const Provider = ({ children }) => {
     const CheckUserAuth = async () => {
         const email = user?.primaryEmailAddress?.emailAddress;
         console.log("-------------user data: " + email);
-        const result = await axios.get(`/api/users?useremail=${email}`);
+        const result = await axios.post('/api/users', { useremail: email, username: user.username });
         console.log("-------------user data: " + JSON.stringify(result.data));
-        setUserDetail(result.data)
+
+        if (!result.data.userEmail) {
+            setUserDetail(result.data)
+        } else {
+            console.error("get user error: either the user is not found or the user is not authenticated: " + JSON.stringify({ useremail: email, username: user.username }));
+        }
     }
 
     return (

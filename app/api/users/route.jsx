@@ -1,34 +1,52 @@
 import { NextResponse } from 'next/server';
-import { connectToDatabase } from '../../configs/mongodb';
+import { connectToDatabase } from '../../configs/mongodb'; 
 
-export async function GET(req) {
+export async function POST(req) {
     try {
-        const { db } = await connectToDatabase();
-
-        const useremail = req.nextUrl.searchParams.get('useremail');
-        console.log("Fetched useremail from MongoDB: " + useremail);
+        // 解析请求体中的数据
+        const { useremail, username } = await req.json();
+        console.log("Fetched useremail from request: " + useremail);
+        console.log("Fetched username from request: " + username);
 
         if (!useremail) {
-            console.log("No useremail provided, returning empty array.");
-            return NextResponse.json({ users: {} }, { status: 200 });
+            return NextResponse.json({ error: 'useremail is required' }, { status: 400 });
         }
 
-        const query = { email: useremail }
+        const { db } = await connectToDatabase();
 
-        const users = await db.collection('users').find(query).toArray();
+        // 检查是否已存在此用户
+        const existingUser = await db.collection('users').findOne({ email: useremail });
+        
+        if (existingUser) {
+            // 如果用户已存在，返回现有用户
+            console.log("User already exists:", existingUser);
+            return NextResponse.json({ user: existingUser }, { status: 200 });
+        } else {
+            // 如果没有找到用户，创建新用户
+            const newUser = {
+                name: username || 'Anonymous User',  // 使用提供的用户名，如果没有则为'Anonymous User'
+                email: useremail,
+                credits: 5,  // 初始信用
+                createdAt: new Date().toISOString()
+            };
 
-        console.log("Successfully fetched users from MongoDB: " + JSON.stringify(users));
-        if (users.length === 0) {
-            console.error('No users found in MongoDB:');
-            return NextResponse.json({ users: {} }, { status: 200 });
+            // 插入新用户到 MongoDB
+            const result = await db.collection('users').insertOne(newUser);
+            console.log("try to insert: ", newUser);
+
+            if (result.acknowledged) {
+                // 插入成功，返回新插入的用户
+                return NextResponse.json({ user: newUser }, { status: 200 });
+            } else {
+                // 插入失败
+                return NextResponse.json({ error: 'Failed to insert user' }, { status: 500 });
+            }
         }
-        const tmp = users[0];
-        return NextResponse.json({ tmp }, { status: 200 });
 
     } catch (error) {
-        console.error('Error fetching users from MongoDB:', error);
+        console.error('Error processing request:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch users from MongoDB.', details: error.message },
+            { error: 'Failed to process request', details: error.message },
             { status: 500 }
         );
     }
