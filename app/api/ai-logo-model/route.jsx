@@ -89,27 +89,89 @@ export async function POST(req) {
 
         let base64ImageWithMime;
         if (type == "Free") {
-        console.log("------------start to call Hugging Face via Supabase for image generation");
-            const imageResponse = await axios({
-                method: 'post',
-                url: process.env.SUPABASE_URL_HF_CALL + "hfquery", // 指向 Supabase 的 HF 路由
-                headers: {
-                    'Authorization': `Bearer ${process.env.SUPABASE_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                data: {
-                    prompt: generatedPromptData.prompt, // 使用 AI 生成的 prompt
-                    sync_mode: true
-                },
-                maxRedirects: 5,
+            // console.log("------------start to call Hugging Face via Supabase for image generation");
+            // const imageResponse = await axios({
+            //     method: 'post',
+            //     url: process.env.SUPABASE_URL_HF_CALL + "hfquery", 
+            //     headers: {
+            //         'Authorization': `Bearer ${process.env.SUPABASE_KEY}`,
+            //         'Content-Type': 'application/json'
+            //     },
+            //     data: {
+            //         prompt: generatedPromptData.prompt,
+            //         sync_mode: true
+            //     },
+            //     maxRedirects: 5,
+            // });
+
+            // console.log("------------End of Hugging Face image generation call");
+            // base64ImageWithMime = imageResponse.data?.image;
+            const replicate = new Replicate({
+                auth: process.env.REPLICATE_API_TOKEN,
             });
 
-            console.log("------------End of Hugging Face image generation call");
-            base64ImageWithMime = imageResponse.data?.image;
+            // bytedance / sdxl-lightning-4step
+            const output = await replicate.run(
+                "bytedance/sdxl-lightning-4step:6f7a773af6fc3e8de9d5a3c00be77c17308914bf67772726aff83496ba1e3bbe",
+                {
+                    input: {
+                        seed: 0,
+                        width: 848,
+                        height: 848,
+                        prompt: generatedPromptData.prompt,
+                        scheduler: "K_EULER",
+                        num_outputs: 1,
+                        guidance_scale: 0,
+                        negative_prompt: "worst quality, low quality",
+                        num_inference_steps: 4
+                    }
+                }
+            );
+
+            console.log("--------------: " + output[0].url());
+
+            if (output && Array.isArray(output) && output.length > 0 && output[0]) {
+                const imageUrl = output[0];
+
+                try {
+                    // 1. 从 URL 获取图片数据
+                    // responseType: 'arraybuffer' 确保响应作为二进制数据处理
+                    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+                    const imageData = response.data; // 这将是图片的二进制数据 (Buffer)
+
+                    // 2. 将图片数据转换为 Base64 格式
+                    const base64Image = Buffer.from(imageData).toString('base64');
+
+                    // 拼接 Data URL 前缀
+                    // 根据 output_format，MIME 类型应该是 'image/png'
+                    const mimeType = 'image/png'; // 确保与 Replicate 的 output_format 匹配
+                    base64ImageWithMime = `data:${mimeType};base64,${base64Image}`;
+
+                    console.log("Image URL:", imageUrl);
+                    console.log("Base64 Image (first 100 chars):", base64ImageWithMime.substring(0, 100) + "...");
+
+
+                    // 正确返回后，update credits                    
+                    console.log("try to update credits");
+                    await db.collection('users').updateOne(
+                        { email: email },
+                        {
+                            $inc: { credits: credits - 1 }
+                        }
+                    );
+
+                } catch (error) {
+                    console.error("Error converting image to Base64:", error);
+                }
+            } else {
+                console.error("Replicate API did not return a valid image URL.");
+            }
         } else if (type == "Premium") {
             const replicate = new Replicate({
                 auth: process.env.REPLICATE_API_TOKEN,
             });
+            
+            // bytedance / hyper-flux-8step
             const output = await replicate.run(
                 "bytedance/hyper-flux-8step:16084e9731223a4367228928a6cb393b21736da2a0ca6a5a492ce311f0a97143",
                 {
@@ -156,7 +218,7 @@ export async function POST(req) {
                     await db.collection('users').updateOne(
                         { email: email },
                         {
-                            $inc: { credits: credits-1 }
+                            $inc: { credits: credits - 1 }
                         }
                     );
 
