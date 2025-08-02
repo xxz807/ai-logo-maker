@@ -1,70 +1,74 @@
 "use client"
 import React, { useContext, useEffect, useState } from 'react'
 import { UserDetailContext } from '../_context/UserDetailContext'
-import Prompt from '../_data/Prompt'; 
+import Prompt from '../_data/Prompt';
 import axios from 'axios';
 import Image from 'next/image';
-import { Loader2 } from 'lucide-react'; 
+import { Loader2 } from 'lucide-react';
 
 const MakeLogo = () => {
     const { userDetail } = useContext(UserDetailContext);
-    const [formData, setFormData] = useState(null); 
-    const [loading, setLoading] = useState(false);
-    const [logoImage, setLogoImage] = useState(null); 
-    const [error, setError] = useState(null);
+    const [logoData, setLogoData] = useState();
+    const [loading, setLoading] = useState();
+    const [logoImage, setLogoImage] = useState();
+    const [error, setError] = useState();
 
-    // Effect 1: 从 localStorage 加载 formData
+    // Effect 1: 从 localStorage 加载 logoData
     useEffect(() => {
+        console.log("---------------- start userDetail." + JSON.stringify(userDetail));
         if (typeof window !== "undefined" && userDetail?.email) {
+            console.log("---------------- start localStorage.");
             const storage = localStorage.getItem('formData');
+            console.log("---------------- end localStorage..");
             if (storage) {
                 try {
                     const parsedData = JSON.parse(storage);
-                    setFormData(parsedData);
-                    console.log("Loaded formData from localStorage:", parsedData);
+                    setLogoData(parsedData);
+                    console.log("Loaded logoData from localStorage:", parsedData);
                 } catch (e) {
-                    console.error("Error parsing formData from localStorage:", e);
+                    console.error("Error parsing logoData from localStorage:", e);
                     setError("Failed to load saved data. Please try again.");
                 }
             } else {
-                console.log("No formData found in localStorage.");
+                console.log("No logoData found in localStorage.");
             }
         }
-    }, [userDetail]); 
+    }, [userDetail]);
 
-    // Effect 2: 当 formData 准备好时，调用 MakeAILogo
+    // Effect 2: 当 logoData 准备好时，调用 MakeAILogo
     useEffect(() => {
-        if (formData?.title && !loading) {
+        console.log("---------------- start MakeAILogo.");
+        if (logoData?.title && !loading) {
             MakeAILogo();
         }
-    }, [formData]); 
+    }, [logoData]);
     const MakeAILogo = async () => {
         setLoading(true);
         setError(null);
-        setLogoImage(null); 
+        setLogoImage(null);
 
         try {
             const PROMPT = Prompt.LOGO_PROMPT
-                .replace('{logoTitle}', formData?.title || '') 
-                .replace('{logoDesc}', formData?.desc || '')
-                .replace('{logoColor}', formData?.palette || '')
-                .replace('{logoIdea}', formData?.idea || '')
-                .replace('{logoDesign}', formData?.design?.title || '')
-                .replace('{logoPrompt}', formData?.design?.prompt || '');
+                .replace('{logoTitle}', logoData?.title || '')
+                .replace('{logoDesc}', logoData?.desc || '')
+                .replace('{logoColor}', logoData?.palette || '')
+                .replace('{logoIdea}', logoData?.idea || '')
+                .replace('{logoDesign}', logoData?.design?.title || '')
+                .replace('{logoPrompt}', logoData?.design?.prompt || '');
 
             console.log("------start to call /api/ai-logo-model with PROMPT:", PROMPT.substring(0, 100) + "...");
 
             const result = await axios.post('/api/ai-logo-model', {
                 prompt: PROMPT,
-                email: userDetail?.email, 
-                title: formData.title,
-                desc: formData.desc
+                email: userDetail?.email,
+                title: logoData.title,
+                desc: logoData.desc
             });
 
             console.log("------end to call /api/ai-logo-model, try to parse" + result.data);
             if (result.data?.image) {
                 setLogoImage(result.data.image);
-                console.log("Logo image data received and set:", result.data.image.substring(0, 100) + "..."); 
+                console.log("Logo image data received and set:", result.data.image.substring(0, 100) + "...");
             } else {
                 console.error("API did not return image data:", result.data);
                 setError("Failed to get image data from the server. Response was incomplete.");
@@ -110,7 +114,7 @@ const MakeLogo = () => {
                             height={300}
                             className="rounded-md"
                             priority
-                            unoptimized 
+                            unoptimized
                             onError={(e) => {
                                 console.error("Image loading error on frontend:", e);
                                 e.currentTarget.onerror = null;

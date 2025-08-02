@@ -22,14 +22,14 @@ export async function POST(req) {
 
             // 读取图片文件
             const imageBuffer = await fs.readFile(testImagePath);
-            
+
             // 将 Buffer 转换为 Base64 字符串
             const base64Image = imageBuffer.toString('base64');
 
             // 根据测试图片的实际类型设置 MIME Type
             // 如果您的测试图片是 .jpg，则改为 'image/jpeg'
-            const mimeType = 'image/png'; 
-            
+            const mimeType = 'image/png';
+
             // 构建 Base64 Data URL
             const base64ImageWithMime = `data:${mimeType};base64,${base64Image}`;
 
@@ -109,6 +109,26 @@ export async function POST(req) {
         }
 
         console.log("Generated Base64 Image (truncated):", base64ImageWithMime.substring(0, 100) + "...");
+
+        const { db } = await connectToDatabase();
+        const logo = {
+            image: base64ImageWithMime,
+            title: title,
+            desc: desc,
+            createdAt: new Date() // 可选，存储 logo 创建时间
+        };
+        const user = await db.collection('users').findOne({ email: email });
+
+        if (user) {
+            // 如果用户存在，更新该用户的 `logos` 数组，插入新的 logo
+            await db.collection('users').updateOne(
+                { email: userEmail },
+                {
+                    $push: { logos: logo } // 使用 `$push` 操作符将新 logo 添加到 `logos` 数组中
+                }
+            );
+            console.log("Logo added successfully.");
+        }
 
         return NextResponse.json({
             image: base64ImageWithMime

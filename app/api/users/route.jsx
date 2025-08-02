@@ -20,7 +20,7 @@ export async function POST(req) {
         if (existingUser) {
             // 如果用户已存在，返回现有用户
             console.log("User already exists:", existingUser);
-            return NextResponse.json({ user: existingUser }, { status: 200 });
+            return NextResponse.json(existingUser , { status: 200 });
         } else {
             // 如果没有找到用户，创建新用户
             const newUser = {
@@ -36,7 +36,7 @@ export async function POST(req) {
 
             if (result.acknowledged) {
                 // 插入成功，返回新插入的用户
-                return NextResponse.json({ user: newUser }, { status: 200 });
+                return NextResponse.json(newUser , { status: 200 });
             } else {
                 // 插入失败
                 return NextResponse.json({ error: 'Failed to insert user' }, { status: 500 });
