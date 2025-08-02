@@ -1,62 +1,35 @@
-import { db } from "../../configs/FirebaseConfig";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+import { connectToDatabase } from '../../configs/mongodb';
 
-export async function POST(req) {
+export async function GET(req) {
     try {
-        // Parse the request body properly
-        const { userEmail, userName } = await req.json();
+        const { db } = await connectToDatabase();
 
-        // Validation to prevent null/undefined values
-        if (!userEmail) {
-            return NextResponse.json({ error: "userEmail is required" }, { status: 400 });
+        const useremail = req.nextUrl.searchParams.get('useremail');
+        console.log("Fetched useremail from MongoDB: " + useremail);
+
+        if (!useremail) {
+            console.log("No useremail provided, returning empty array.");
+            return NextResponse.json({ users: {} }, { status: 200 });
         }
 
-        try {
-            // IF USER EXISTS 
-            const docRef = doc(db, "users", userEmail);
-            //const docSnap = await getDoc(docRef);
+        const query = { email: useremail }
 
-            //if (docSnap.exists()) {
-            //    return NextResponse.json(docSnap.data());
-            //} else {
-                // insert new user
-                const data = {
-                    name: userName || 'Anonymous User',
-                    email: userEmail,
-                    credits: 5,
-                    createdAt: new Date().toISOString()
-                };
+        const users = await db.collection('users').find(query).toArray();
 
-            //    await setDoc(doc(db, "users", userEmail), data);
-                return NextResponse.json(data);
-            //}
-        } catch (firestoreError) {
-            console.error("Firestore operation failed:", firestoreError);
-
-            // Handle Firestore specific errors
-            if (firestoreError.code === 'unavailable') {
-                return NextResponse.json({
-                    error: "Database is currently unavailable. Please check your internet connection.",
-                    offline: true
-                }, { status: 503 });
-            }
-
-            if (firestoreError.code === 'permission-denied') {
-                return NextResponse.json({
-                    error: "You don't have permission to perform this operation.",
-                }, { status: 403 });
-            }
-
-            throw firestoreError; // Re-throw for the outer catch block
+        console.log("Successfully fetched users from MongoDB: " + JSON.stringify(users));
+        if (users.length === 0) {
+            console.error('No users found in MongoDB:');
+            return NextResponse.json({ users: {} }, { status: 200 });
         }
+        const tmp = users[0];
+        return NextResponse.json({ tmp }, { status: 200 });
+
     } catch (error) {
-        // Proper error handling with logging
-        console.error("API Error:", error);
-
-        return NextResponse.json({
-            error: "Failed to process your request",
-            details: error.message || "Internal server error"
-        }, { status: 500 });
+        console.error('Error fetching users from MongoDB:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch users from MongoDB.', details: error.message },
+            { status: 500 }
+        );
     }
 }

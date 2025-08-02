@@ -17,14 +17,11 @@ const Provider = ({ children }) => {
 
     //saving user data
     const CheckUserAuth = async () => {
-        const result = await axios.post('/api/users', {
-            userName: user?.fullName,
-            userEmail: user?.primaryEmailAddress?.emailAddress
-        });
-        console.log(result.data);
+        const email = user?.primaryEmailAddress?.emailAddress;
+        console.log("-------------user data: " + email);
+        const result = await axios.get(`/api/users?useremail=${email}`);
+        console.log("-------------user data: " + JSON.stringify(result.data));
         setUserDetail(result.data)
-
-
     }
 
     return (
