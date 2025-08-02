@@ -23,7 +23,7 @@ function LogoTitle({ onHandleInputChange }) {
         <div>
             <div className="my-10">
                 <HeaderDesc title={Lookup.LogoTitle}
-                    desc={Lookup.LogoTitileDesc} />
+                    desc={Lookup.LogoTitleDesc} />
             </div>
 
             <input
