@@ -150,16 +150,6 @@ export async function POST(req) {
                     console.log("Image URL:", imageUrl);
                     console.log("Base64 Image (first 100 chars):", base64ImageWithMime.substring(0, 100) + "...");
 
-
-                    // 正确返回后，update credits                    
-                    console.log("try to update credits");
-                    await db.collection('users').updateOne(
-                        { email: email },
-                        {
-                            $inc: { credits: credits - 1 }
-                        }
-                    );
-
                 } catch (error) {
                     console.error("Error converting image to Base64:", error);
                 }
@@ -170,7 +160,7 @@ export async function POST(req) {
             const replicate = new Replicate({
                 auth: process.env.REPLICATE_API_TOKEN,
             });
-            
+
             // bytedance / hyper-flux-8step
             const output = await replicate.run(
                 "bytedance/hyper-flux-8step:16084e9731223a4367228928a6cb393b21736da2a0ca6a5a492ce311f0a97143",
