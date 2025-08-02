@@ -5,6 +5,7 @@ import Prompt from '../_data/Prompt';
 import axios from 'axios';
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
 const MakeLogo = () => {
     const { userDetail } = useContext(UserDetailContext);
@@ -12,6 +13,8 @@ const MakeLogo = () => {
     const [loading, setLoading] = useState();
     const [logoImage, setLogoImage] = useState();
     const [error, setError] = useState();
+    const searchParams = useSearchParams();
+    const modelType = searchParams.get('type');
 
     // Effect 1: 从 localStorage 加载 logoData
     useEffect(() => {
@@ -62,7 +65,9 @@ const MakeLogo = () => {
                 prompt: PROMPT,
                 email: userDetail?.email,
                 title: logoData.title,
-                desc: logoData.desc
+                desc: logoData.desc,
+                credits: logoData.credits,
+                type: modelType
             });
 
             console.log("------end to call /api/ai-logo-model, try to parse" + result.data);

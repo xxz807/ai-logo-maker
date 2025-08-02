@@ -2,13 +2,14 @@
 
 import axios from "axios";
 import { NextResponse } from "next/server";
-import fs from 'fs/promises'; 
-import path from 'path';  
-import { connectToDatabase } from '../../configs/mongodb'; 
+import fs from 'fs/promises';
+import path from 'path';
+import { connectToDatabase } from '../../configs/mongodb';
+import Replicate from "replicate";
 
 export async function POST(req) {
     // 1. 从请求体中解析数据
-    const { prompt, email, title, desc } = await req.json();
+    const { prompt, email, title, desc, type, credits } = await req.json();
 
     // --- 测试模式逻辑开始 ---
     // 检查环境变量是否启用测试模式
@@ -51,6 +52,8 @@ export async function POST(req) {
 
 
     // 正常生产模式下的代码（只有当 isTestMode 为 false 时才执行）
+
+    const { db } = await connectToDatabase();
     try {
         // 2. 校验客户端传入的 prompt
         if (!prompt) {
@@ -84,25 +87,86 @@ export async function POST(req) {
             return NextResponse.json({ error: 'Failed to generate a valid logo prompt from AI.' }, { status: 500 });
         }
 
+        let base64ImageWithMime;
+        if (type == "Free") {
         console.log("------------start to call Hugging Face via Supabase for image generation");
+            const imageResponse = await axios({
+                method: 'post',
+                url: process.env.SUPABASE_URL_HF_CALL + "hfquery", // 指向 Supabase 的 HF 路由
+                headers: {
+                    'Authorization': `Bearer ${process.env.SUPABASE_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                    prompt: generatedPromptData.prompt, // 使用 AI 生成的 prompt
+                    sync_mode: true
+                },
+                maxRedirects: 5,
+            });
 
-        const imageResponse = await axios({
-            method: 'post',
-            url: process.env.SUPABASE_URL_HF_CALL + "hfquery", // 指向 Supabase 的 HF 路由
-            headers: {
-                'Authorization': `Bearer ${process.env.SUPABASE_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            data: {
-                prompt: generatedPromptData.prompt, // 使用 AI 生成的 prompt
-                sync_mode: true
-            },
-            maxRedirects: 5,
-        });
+            console.log("------------End of Hugging Face image generation call");
+            base64ImageWithMime = imageResponse.data?.image;
+        } else if (type == "Premium") {
+            const replicate = new Replicate({
+                auth: process.env.REPLICATE_API_TOKEN,
+            });
+            const output = await replicate.run(
+                "bytedance/hyper-flux-8step:16084e9731223a4367228928a6cb393b21736da2a0ca6a5a492ce311f0a97143",
+                {
+                    input: {
+                        seed: 0,
+                        width: 848,
+                        height: 848,
+                        prompt: generatedPromptData.prompt,
+                        num_outputs: 1,
+                        aspect_ratio: "1:1",
+                        output_format: "png",
+                        guidance_scale: 3.5,
+                        output_quality: 80,
+                        num_inference_steps: 8
+                    }
+                }
+            );
 
-        console.log("------------End of Hugging Face image generation call");
+            console.log("--------------: " + output[0].url());
 
-        const base64ImageWithMime = imageResponse.data?.image;
+            if (output && Array.isArray(output) && output.length > 0 && output[0]) {
+                const imageUrl = output[0];
+
+                try {
+                    // 1. 从 URL 获取图片数据
+                    // responseType: 'arraybuffer' 确保响应作为二进制数据处理
+                    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+                    const imageData = response.data; // 这将是图片的二进制数据 (Buffer)
+
+                    // 2. 将图片数据转换为 Base64 格式
+                    const base64Image = Buffer.from(imageData).toString('base64');
+
+                    // 拼接 Data URL 前缀
+                    // 根据 output_format，MIME 类型应该是 'image/png'
+                    const mimeType = 'image/png'; // 确保与 Replicate 的 output_format 匹配
+                    base64ImageWithMime = `data:${mimeType};base64,${base64Image}`;
+
+                    console.log("Image URL:", imageUrl);
+                    console.log("Base64 Image (first 100 chars):", base64ImageWithMime.substring(0, 100) + "...");
+
+
+                    // 正确返回后，update credits                    
+                    console.log("try to update credits");
+                    await db.collection('users').updateOne(
+                        { email: email },
+                        {
+                            $inc: { credits: credits-1 }
+                        }
+                    );
+
+                } catch (error) {
+                    console.error("Error converting image to Base64:", error);
+                }
+            } else {
+                console.error("Replicate API did not return a valid image URL.");
+            }
+        }
 
         if (!base64ImageWithMime) {
             console.error('API did not return a valid image data URL in the "image" field:', imageResponse.data);
@@ -111,7 +175,6 @@ export async function POST(req) {
 
         console.log("Generated Base64 Image (truncated):", base64ImageWithMime.substring(0, 100) + "...");
 
-        const { db } = await connectToDatabase();
         const logo = {
             image: base64ImageWithMime,
             title: title,
