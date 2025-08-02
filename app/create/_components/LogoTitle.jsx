@@ -2,16 +2,13 @@
 import React, { useEffect, useState } from 'react'
 import HeaderDesc from "./HeadingDesc";
 import Lookup from "../../_data/Lookup.jsx";
-import { useSearchParams } from "next/navigation";
 
-function LogoTitle({ onHandleInputChange }) {
-    const searchParam = useSearchParams();
-    const [title, setTitle] = useState(searchParam?.get('title') ?? '');
+function LogoTitle({ onHandleInputChange, formData }) {
 
     useEffect(() => {
-        if (title) {
-            console.log("Calling onHandleInputChange for initial title:", title); 
-            onHandleInputChange(title);
+        if (formData?.title) {
+            console.log("Calling onHandleInputChange for initial title:", formData?.title); 
+            onHandleInputChange(formData?.title);
         }
     }, []); 
 
@@ -30,7 +27,7 @@ function LogoTitle({ onHandleInputChange }) {
                 className='p-4 border rounded-lg mt-5 w-full'
                 type="text"
                 placeholder={Lookup.InputTitlePlaceholder}
-                defaultValue={title} 
+                defaultValue={formData?.title} 
                 onChange={handleInputChange} 
             />
         </div>

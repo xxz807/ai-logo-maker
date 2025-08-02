@@ -7,6 +7,8 @@ import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from "sonner"
+import { Button } from "@/components/ui/button";
+import Link from 'next/link';
 
 const MakeLogo = () => {
     const { userDetail } = useContext(UserDetailContext);
@@ -17,7 +19,6 @@ const MakeLogo = () => {
     const searchParams = useSearchParams();
     const modelType = searchParams.get('type');
 
-    // Effect 1: 从 localStorage 加载 logoData
     useEffect(() => {
         console.log("---------------- start userDetail." + JSON.stringify(userDetail));
         if (typeof window !== "undefined" && userDetail?.email) {
@@ -39,7 +40,6 @@ const MakeLogo = () => {
         }
     }, [userDetail]);
 
-    // Effect 2: 当 logoData 准备好时，调用 MakeAILogo
     useEffect(() => {
         console.log("---------------- start MakeAILogo.");
         if (logoData?.title && !loading) {
@@ -99,6 +99,44 @@ const MakeLogo = () => {
         }
     }
 
+    const handleDownloadLogo = () => {
+        if (logoImage) {
+            const link = document.createElement('a');
+            link.href = logoImage;
+
+            let filename = 'generated-logo';
+            if (logoImage.startsWith('data:image/')) {
+                const mimeTypeMatch = logoImage.match(/^data:([^;]+);/);
+                if (mimeTypeMatch && mimeTypeMatch[1]) {
+                    const mimeType = mimeTypeMatch[1];
+                    if (mimeType.includes('image/png')) filename += '.png';
+                    else if (mimeType.includes('image/jpeg')) filename += '.jpeg';
+                    else if (mimeType.includes('image/webp')) filename += '.webp';
+                    else if (mimeType.includes('image/svg+xml')) filename += '.svg';
+                    else filename += '.bin';
+                } else {
+                    filename += '.bin';
+                }
+            } else {
+                const urlParts = logoImage.split('/');
+                const lastPart = urlParts[urlParts.length - 1];
+                if (lastPart.includes('.')) {
+                    filename = lastPart;
+                } else {
+                    filename += '.webp';
+                }
+            }
+
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else {
+            console.warn("No logo image available to download.");
+        }
+    };
+
+
     return (
         <div className="flex flex-col items-center justify-center space-y-4 p-8">
             {loading ? (
@@ -135,12 +173,26 @@ const MakeLogo = () => {
                             }}
                         />
                     </div>
-                    <button
-                        className="mt-6 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-                        onClick={MakeAILogo}
-                    >
-                        Make Another Logo
-                    </button>
+                    <div className="flex gap-4 mt-6">
+                        <Button
+                            className="px-4 py-2 rounded-md hover:cursor-pointer"
+                            onClick={MakeAILogo}
+                        >
+                            Make Another Logo
+                        </Button>
+                        <Button
+                            className="px-4 py-2 rounded-md hover:cursor-pointer"
+                            onClick={handleDownloadLogo}
+                        >
+                            Download Logo
+                        </Button>
+                        <Link href={'/create'}>
+                            <Button
+                                className="px-4 py-2 rounded-md hover:cursor-pointer">
+                                Create New Logo
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
             ) : (
                 <p>Preparing to make your logo...</p>

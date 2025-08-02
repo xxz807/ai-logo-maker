@@ -9,7 +9,7 @@ function LogoDesc({ onHandleInputChange, formData }) {
             <HeadingDesc title={Lookup.LogoDescTitle}
                 desc={Lookup.LogoDescDesc} />
             <input className='p-4 border rounded-lg mt-5 w-full' type="text"
-                placeholder={Lookup.InputTitlePlaceholder}
+                placeholder={Lookup.InputDescPlaceholder}
                 defaultValue={formData?.desc}
                 onChange={e => onHandleInputChange(e.target.value)}></input>
         </div>

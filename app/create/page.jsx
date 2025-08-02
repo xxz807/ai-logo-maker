@@ -8,6 +8,7 @@ import LogoColorPallete from "./_components/LogoColorPallete";
 import LogoDesigns from "./_components/LogoDesigns";
 import LogoIdea from "./_components/LogoIdea";
 import PricingModel from "./_components/PricingModel";
+import { toast } from "sonner";
 
 
 function CreateLogo() {
@@ -19,16 +20,16 @@ function CreateLogo() {
         design: {
             title: '',
             prompt: '',
-            image: '' 
+            image: ''
         },
-        idea: '', 
-        pricing: '', 
+        idea: '',
+        pricing: '',
     });
 
     useEffect(() => {
         console.log("Parent formData (updated):", formData);
         localStorage.setItem('formData', JSON.stringify(formData));
-    }, [formData]); 
+    }, [formData]);
 
     const onHandleInputChange = (field, value) => {
         setFormData(prev => {
@@ -37,6 +38,19 @@ function CreateLogo() {
                 [field]: value,
             };
         });
+    };
+
+    const handleContinue = () => {
+        if (step === 1) {
+            console.log(formData?.title)
+            if (!formData?.title) {
+                toast.error('Validation Error', {
+                    description: 'The "Title" field cannot be empty. Please provide a value to continue.',
+                });
+                return;
+            }
+        }
+        setStep(step + 1);
     };
 
     return (
@@ -61,11 +75,13 @@ function CreateLogo() {
             )}
 
             <div className="flex justify-between items-center mt-10">
-                {step !== 1 && ( 
+                {step !== 1 && (
                     <Button variant='outline'
                         onClick={() => setStep(step - 1)}><ArrowLeft />Previous</Button>
                 )}
-                <Button onClick={() => setStep(step + 1)}><ArrowRight />Continue</Button>
+                {step !== 6 && (
+                    <Button onClick={handleContinue}><ArrowRight />Continue</Button>
+                )}
             </div>
         </div>
     )
