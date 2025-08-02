@@ -1,22 +1,22 @@
 "use client"
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState, Suspense } from 'react'
 import { UserDetailContext } from '../_context/UserDetailContext'
 import Prompt from '../_data/Prompt';
 import axios from 'axios';
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation'; 
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 
-const MakeLogo = () => {
+const MakeLogoContent = () => {
     const { userDetail } = useContext(UserDetailContext);
     const [logoData, setLogoData] = useState();
     const [loading, setLoading] = useState();
     const [logoImage, setLogoImage] = useState();
     const [error, setError] = useState();
-    const searchParams = useSearchParams();
+    const searchParams = useSearchParams(); 
     const modelType = searchParams.get('type');
 
     useEffect(() => {
@@ -42,17 +42,25 @@ const MakeLogo = () => {
 
     useEffect(() => {
         console.log("---------------- start MakeAILogo.");
-        if (logoData?.title && !loading) {
+        if (logoData?.title && !loading && userDetail?.email && modelType) {
             MakeAILogo();
+        } else {
+            console.log("MakeAILogo NOT called. Conditions:", {
+                logoTitle: logoData?.title,
+                loading: loading,
+                userEmail: userDetail?.email,
+                modelType: modelType
+            });
         }
-    }, [logoData]);
-    const MakeAILogo = async () => {
-        if (modelType == 'Premium' && userDetail.credits < 1) {
-            setError("You don't have enough credits to make a logo. Please upgrade to Premium to get more credits.");
+    }, [logoData, loading, userDetail?.email, modelType]); 
 
-            toast("You don't have enough credits to make a logo. Please upgrade to Premium to get more credits.");
-            return;
-        }
+    const MakeAILogo = async () => {
+        if (modelType === 'Premium' && (!userDetail || userDetail.credits === undefined || userDetail.credits < 5)) { // 假设 Premium 需要 5 个积分
+             setError("You don't have enough credits to make a logo. Please upgrade to Premium to get more credits.");
+             toast.error("Not Enough Credits", { description: "You don't have enough credits to make a logo. Please upgrade to Premium to get more credits." });
+             return;
+         }
+
         setLoading(true);
         setError(null);
         setLogoImage(null);
@@ -73,7 +81,7 @@ const MakeLogo = () => {
                 email: userDetail?.email,
                 title: logoData.title,
                 desc: logoData.desc,
-                credits: userDetail.credits,
+                credits: userDetail?.credits, 
                 type: modelType
             });
 
@@ -201,4 +209,10 @@ const MakeLogo = () => {
     )
 }
 
-export default MakeLogo
+export default function MakeLogoPageWrapper() {
+    return (
+        <Suspense fallback={<div>Loading logo generation interface...</div>}>
+            <MakeLogoContent />
+        </Suspense>
+    );
+}
