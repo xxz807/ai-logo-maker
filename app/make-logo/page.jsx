@@ -6,6 +6,7 @@ import axios from 'axios';
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { toast } from "sonner"
 
 const MakeLogo = () => {
     const { userDetail } = useContext(UserDetailContext);
@@ -46,6 +47,12 @@ const MakeLogo = () => {
         }
     }, [logoData]);
     const MakeAILogo = async () => {
+        if (modelType == 'Premium' && userDetail.credits < 1) {
+            setError("You don't have enough credits to make a logo. Please upgrade to Premium to get more credits.");
+
+            toast("You don't have enough credits to make a logo. Please upgrade to Premium to get more credits.");
+            return;
+        }
         setLoading(true);
         setError(null);
         setLogoImage(null);
@@ -66,7 +73,7 @@ const MakeLogo = () => {
                 email: userDetail?.email,
                 title: logoData.title,
                 desc: logoData.desc,
-                credits: logoData.credits,
+                credits: userDetail.credits,
                 type: modelType
             });
 
