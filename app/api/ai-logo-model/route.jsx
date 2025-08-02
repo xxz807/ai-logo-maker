@@ -2,8 +2,9 @@
 
 import axios from "axios";
 import { NextResponse } from "next/server";
-import fs from 'fs/promises'; // 导入 Node.js 文件系统模块 (异步版本)
-import path from 'path';     // 导入 Node.js 路径模块
+import fs from 'fs/promises'; 
+import path from 'path';  
+import { connectToDatabase } from '../../configs/mongodb'; 
 
 export async function POST(req) {
     // 1. 从请求体中解析数据
@@ -122,7 +123,7 @@ export async function POST(req) {
         if (user) {
             // 如果用户存在，更新该用户的 `logos` 数组，插入新的 logo
             await db.collection('users').updateOne(
-                { email: userEmail },
+                { email: email },
                 {
                     $push: { logos: logo } // 使用 `$push` 操作符将新 logo 添加到 `logos` 数组中
                 }
